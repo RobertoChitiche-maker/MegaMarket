@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import api from "../services/api";
+import { Link, useNavigate } from "react-router-dom";
+import { apiRequest } from "../services/api";
 
 function Register() {
+  const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -10,6 +12,7 @@ function Register() {
   });
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     setForm({
@@ -20,108 +23,99 @@ function Register() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setMessage("");
 
     if (!form.name || !form.email || !form.password) {
       setMessage("Preencha todos os campos.");
       return;
     }
 
-    const savedClients = JSON.parse(localStorage.getItem("clients")) || [];
-
-    const clientExists = savedClients.find(
-      (client) => client.email === form.email
-    );
-
-    if (clientExists) {
-      setMessage("Este email já está cadastrado.");
-      return;
-    }
-
-    const newClient = {
-      id: Date.now(),
-      name: form.name,
-      email: form.email,
-      password: form.password,
-      role: "CLIENTE",
-      createdAt: new Date().toLocaleString("pt-PT"),
-    };
-
-    const updatedClients = [...savedClients, newClient];
-
-    localStorage.setItem("clients", JSON.stringify(updatedClients));
-
     try {
-      await api.post("/auth/register", form);
+      setLoading(true);
+
+      const data = await apiRequest("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+
+      window.dispatchEvent(new Event("authUpdated"));
+
+      setMessage("Conta criada com sucesso!");
+
+      setTimeout(() => {
+        navigate("/");
+      }, 1000);
     } catch (error) {
-      console.log("Cadastro guardado localmente.");
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    setMessage("Conta criada com sucesso. Agora já pode fazer login.");
-
-    setForm({
-      name: "",
-      email: "",
-      password: "",
-    });
   }
 
   return (
     <main className="auth-page">
-      <div className="auth-container">
-        <div className="auth-box">
-          <div className="auth-header">
-            <h1>Criar conta</h1>
-            <p>
-              Registe-se no MegaMarket para comprar produtos e acompanhar o
-              estado das suas entregas.
-            </p>
+      <div className="auth-box">
+        <div className="auth-header">
+          <h1>Criar conta</h1>
+          <p>Registe-se para comprar no MegaMarket.</p>
+        </div>
+
+        {message && <div className="auth-message">{message}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Nome completo</label>
+            <input
+              type="text"
+              name="name"
+              placeholder="Digite o seu nome"
+              value={form.name}
+              onChange={handleChange}
+            />
           </div>
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label>Nome completo</label>
-              <input
-                type="text"
-                name="name"
-                placeholder="Digite o seu nome completo"
-                value={form.name}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="input-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Digite o seu email"
+              value={form.email}
+              onChange={handleChange}
+            />
+          </div>
 
-            <div className="input-group">
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Digite o seu email"
-                value={form.email}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="input-group">
+            <label>Senha</label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Digite a sua senha"
+              value={form.password}
+              onChange={handleChange}
+            />
+          </div>
 
-            <div className="input-group">
-              <label>Senha</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Crie uma senha"
-                value={form.password}
-                onChange={handleChange}
-              />
-            </div>
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "Criando conta..." : "Criar conta"}
+          </button>
+        </form>
 
-            <button type="submit" className="auth-submit-btn">
-              Criar conta
-            </button>
-
-            {message && <p className="auth-message">{message}</p>}
-
-            <p className="auth-switch">
-              Já tem conta? <Link to="/login">Entrar</Link>
-            </p>
-          </form>
-        </div>
+        <p className="auth-switch">
+          Já tem conta? <Link to="/login">Entrar</Link>
+        </p>
       </div>
     </main>
   );
