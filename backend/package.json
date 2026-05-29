@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "node src/server.js"
-  },
+  "dev": "vite",
+  "build": "vite build",
+  "start": "vite preview --host 0.0.0.0 --port 10000"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
