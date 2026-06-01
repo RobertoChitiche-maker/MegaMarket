@@ -10,9 +10,9 @@ async function getProducts(req, res) {
       },
     });
 
-    return res.json(products);
+    res.json(products);
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Erro ao listar produtos.",
       error: error.message,
     });
@@ -40,9 +40,9 @@ async function createProduct(req, res) {
       },
     });
 
-    return res.status(201).json(product);
+    res.status(201).json(product);
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Erro ao cadastrar produto.",
       error: error.message,
     });
@@ -59,11 +59,11 @@ async function deleteProduct(req, res) {
       },
     });
 
-    return res.json({
+    res.json({
       message: "Produto eliminado com sucesso.",
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       message: "Erro ao eliminar produto.",
       error: error.message,
     });
