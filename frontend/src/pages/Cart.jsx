@@ -8,7 +8,6 @@ function Cart() {
   const [message, setMessage] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
-  const isCliente = user?.role === "CLIENTE";
 
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -28,7 +27,7 @@ function Cart() {
   }
 
   function formatMoney(value) {
-    return value.toLocaleString("pt-MZ", {
+    return Number(value || 0).toLocaleString("pt-MZ", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
@@ -60,7 +59,9 @@ function Cart() {
 
   function increaseQuantity(id) {
     const updatedCart = cart.map((item) =>
-      item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+      item.id === id
+        ? { ...item, quantity: Number(item.quantity || 1) + 1 }
+        : item
     );
 
     saveCart(updatedCart);
@@ -69,7 +70,13 @@ function Cart() {
   function decreaseQuantity(id) {
     const updatedCart = cart.map((item) =>
       item.id === id
-        ? { ...item, quantity: item.quantity > 1 ? item.quantity - 1 : 1 }
+        ? {
+            ...item,
+            quantity:
+              Number(item.quantity || 1) > 1
+                ? Number(item.quantity || 1) - 1
+                : 1,
+          }
         : item
     );
 
@@ -78,17 +85,24 @@ function Cart() {
 
   const total = cart.reduce((sum, item) => {
     const price = formatPriceToNumber(item.price);
-    return sum + price * item.quantity;
+    return sum + price * Number(item.quantity || 1);
   }, 0);
 
   function handleFinishClick() {
-    if (!user) {
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!currentUser) {
       setMessage("Para finalizar a compra, primeiro faça login.");
       return;
     }
 
-    if (!isCliente) {
+    if (currentUser.role === "ADMIN") {
       setMessage("Administrador não pode finalizar compras como cliente.");
+      return;
+    }
+
+    if (currentUser.role !== "CLIENT" && currentUser.role !== "CLIENTE") {
+      setMessage("Conta inválida para finalizar compra.");
       return;
     }
 
@@ -99,25 +113,45 @@ function Cart() {
   function finishOrder(e) {
     e.preventDefault();
 
+    const currentUser = JSON.parse(localStorage.getItem("user"));
+
+    if (!currentUser) {
+      setMessage("Para finalizar a compra, primeiro faça login.");
+      return;
+    }
+
+    if (currentUser.role === "ADMIN") {
+      setMessage("Administrador não pode finalizar compras como cliente.");
+      return;
+    }
+
+    if (currentUser.role !== "CLIENT" && currentUser.role !== "CLIENTE") {
+      setMessage("Conta inválida para finalizar compra.");
+      return;
+    }
+
+    if (cart.length === 0) {
+      setMessage("O carrinho está vazio.");
+      return;
+    }
+
     if (!deliveryAddress.trim()) {
       setMessage("Informe o local de entrega.");
       return;
     }
 
     const savedOrders = JSON.parse(localStorage.getItem("orders")) || [];
-
     const purchaseDate = new Date();
 
     const newOrder = {
       id: Date.now(),
-      userId: user.id,
-      clientName: user.name,
-      clientEmail: user.email,
+      userId: currentUser.id,
+      clientName: currentUser.name,
+      clientEmail: currentUser.email,
       items: cart,
       total,
-      deliveryAddress,
+      deliveryAddress: deliveryAddress.trim(),
       status: "Pendente",
-
       createdAt: purchaseDate.toISOString(),
       purchaseDateFormatted: purchaseDate.toLocaleString("pt-PT"),
       purchaseMonth: getPurchaseMonth(purchaseDate),
@@ -148,7 +182,7 @@ function Cart() {
 
         {message && <div className="success-message">{message}</div>}
 
-        {message.includes("login") && (
+        {message.toLowerCase().includes("login") && (
           <div className="login-warning">
             <Link to="/login">Ir para login</Link>
           </div>
@@ -165,7 +199,12 @@ function Cart() {
               {cart.map((item) => (
                 <div className="cart-item" key={item.id}>
                   <img
-                    src={item.image || "https://via.placeholder.com/300"}
+                    src={
+                      item.image ||
+                      (item.images && item.images.length > 0
+                        ? item.images[0]
+                        : "https://placehold.co/300x300/e5e7eb/111827?text=Produto")
+                    }
                     alt={item.name}
                   />
 
@@ -176,7 +215,7 @@ function Cart() {
 
                   <div className="cart-actions">
                     <button onClick={() => decreaseQuantity(item.id)}>-</button>
-                    <span>{item.quantity}</span>
+                    <span>{item.quantity || 1}</span>
                     <button onClick={() => increaseQuantity(item.id)}>+</button>
                   </div>
 
