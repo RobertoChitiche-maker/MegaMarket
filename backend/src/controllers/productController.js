@@ -1,6 +1,4 @@
-const { PrismaClient } = require("@prisma/client");
-
-const prisma = new PrismaClient();
+const prisma = require("../prismaClient");
 
 async function getProducts(req, res) {
   try {
@@ -10,9 +8,9 @@ async function getProducts(req, res) {
       },
     });
 
-    res.json(products);
+    return res.json(products);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Erro ao listar produtos.",
       error: error.message,
     });
@@ -33,16 +31,16 @@ async function createProduct(req, res) {
       data: {
         name,
         category,
-        price,
+        price: String(price),
         stock: Number(stock),
         image: image || "",
         description: description || "Produto disponível para venda.",
       },
     });
 
-    res.status(201).json(product);
+    return res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Erro ao cadastrar produto.",
       error: error.message,
     });
@@ -59,11 +57,11 @@ async function deleteProduct(req, res) {
       },
     });
 
-    res.json({
+    return res.json({
       message: "Produto eliminado com sucesso.",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Erro ao eliminar produto.",
       error: error.message,
     });

@@ -1,23 +1,10 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  CLIENTE
-  ADMIN
-}
-
-enum OrderStatus {
-  PENDENTE
-  CONFIRMADO
-  ENVIADO
-  ENTREGUE
-  CANCELADO
+generator client {
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -25,16 +12,17 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      Role     @default(CLIENTE)
+  role      String   @default("CLIENT")
   createdAt DateTime @default(now())
 
   orders Order[]
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
 }
 
 model Product {
@@ -51,10 +39,10 @@ model Product {
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   total     Float
-  status    OrderStatus @default(PENDENTE)
-  createdAt DateTime    @default(now())
+  status    String   @default("Pendente")
+  createdAt DateTime @default(now())
 
   userId Int
   user   User @relation(fields: [userId], references: [id])
@@ -63,7 +51,11 @@ model Order {
 }
 
 model OrderItem {
-  id      Int   @id @default(autoincrement())
+  id        Int   @id @default(autoincrement())
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+
   orderId Int
   order   Order @relation(fields: [orderId], references: [id])
 

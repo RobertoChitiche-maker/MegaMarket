@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { productsByCategory } from "./Products";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 function AdminDashboard() {
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -40,15 +42,26 @@ function AdminDashboard() {
     loadData();
   }, []);
 
-  function loadData() {
+  async function loadData() {
     const savedOrders = JSON.parse(localStorage.getItem("orders")) || [];
     const savedClients = JSON.parse(localStorage.getItem("clients")) || [];
-    const savedProducts =
-      JSON.parse(localStorage.getItem("adminProducts")) || [];
 
     setOrders(savedOrders);
     setClients(savedClients);
-    setProducts(savedProducts);
+
+    try {
+      const response = await fetch(`${API_URL}/api/products`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erro ao carregar produtos.");
+      }
+
+      setProducts(data);
+    } catch (error) {
+      console.log("Erro ao carregar produtos:", error);
+      setProducts([]);
+    }
   }
 
   if (!user) {
@@ -145,8 +158,9 @@ function AdminDashboard() {
     });
   }
 
-  function addProduct(e) {
+  async function addProduct(e) {
     e.preventDefault();
+    setProductMessage("");
 
     if (
       !productForm.name ||
@@ -158,80 +172,94 @@ function AdminDashboard() {
       return;
     }
 
-    const newProduct = {
-      id: Date.now(),
-      name: productForm.name,
-      category: productForm.category,
-      price: productForm.price,
-      stock: Number(productForm.stock),
-      images: productForm.image ? [productForm.image] : [],
-      image:
-        productForm.image ||
-        "https://placehold.co/600x400/eaf6ff/0f172a?text=Produto",
-      description:
-        productForm.description || "Produto eletrónico disponível para venda.",
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const response = await fetch(`${API_URL}/api/products`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: productForm.name,
+          category: productForm.category,
+          price: productForm.price,
+          stock: Number(productForm.stock),
+          image: productForm.image,
+          description: productForm.description,
+        }),
+      });
 
-    const updatedProducts = [...products, newProduct];
+      const data = await response.json();
 
-    setProducts(updatedProducts);
-    localStorage.setItem("adminProducts", JSON.stringify(updatedProducts));
+      if (!response.ok) {
+        throw new Error(data.message || "Erro ao cadastrar produto.");
+      }
 
-    setProductForm({
-      name: "",
-      category: "",
-      price: "",
-      stock: "",
-      image: "",
-      description: "",
-    });
+      setProducts((prevProducts) => [data, ...prevProducts]);
 
-    setProductMessage(
-      "Produto adicionado com sucesso! Ele já aparece na página Produtos e no Stock."
-    );
+      setProductForm({
+        name: "",
+        category: "",
+        price: "",
+        stock: "",
+        image: "",
+        description: "",
+      });
 
-    setTimeout(() => {
-      setProductMessage("");
-    }, 4000);
+      setProductMessage("Produto cadastrado com sucesso na base de dados.");
+
+      setTimeout(() => {
+        setProductMessage("");
+      }, 4000);
+    } catch (error) {
+      setProductMessage(error.message);
+    }
   }
 
-  function deleteProduct(productId, productType) {
+  async function deleteProduct(productId, productType) {
     const confirmDelete = window.confirm(
       "Tem certeza que deseja eliminar este produto?"
     );
 
     if (!confirmDelete) return;
 
-    if (productType === "admin") {
-      const updatedProducts = products.filter(
-        (product) => product.id !== productId
-      );
+    try {
+      if (productType === "admin") {
+        const response = await fetch(`${API_URL}/api/products/${productId}`, {
+          method: "DELETE",
+        });
 
-      setProducts(updatedProducts);
-      localStorage.setItem("adminProducts", JSON.stringify(updatedProducts));
-    } else {
-      const savedDeletedIds =
-        JSON.parse(localStorage.getItem("deletedProductIds")) || [];
+        const data = await response.json();
 
-      if (!savedDeletedIds.includes(productId)) {
-        const updatedDeletedIds = [...savedDeletedIds, productId];
+        if (!response.ok) {
+          throw new Error(data.message || "Erro ao eliminar produto.");
+        }
 
-        localStorage.setItem(
-          "deletedProductIds",
-          JSON.stringify(updatedDeletedIds)
+        setProducts((prevProducts) =>
+          prevProducts.filter((product) => product.id !== productId)
         );
+      } else {
+        const savedDeletedIds =
+          JSON.parse(localStorage.getItem("deletedProductIds")) || [];
+
+        if (!savedDeletedIds.includes(productId)) {
+          const updatedDeletedIds = [...savedDeletedIds, productId];
+
+          localStorage.setItem(
+            "deletedProductIds",
+            JSON.stringify(updatedDeletedIds)
+          );
+        }
       }
+
+      setProductMessage("Produto eliminado com sucesso.");
+
+      setTimeout(() => {
+        setProductMessage("");
+        loadData();
+      }, 1000);
+    } catch (error) {
+      setProductMessage(error.message);
     }
-
-    setProductMessage(
-      "Produto eliminado com sucesso! Ele saiu da página Produtos e do Stock."
-    );
-
-    setTimeout(() => {
-      setProductMessage("");
-      loadData();
-    }, 1000);
   }
 
   function deleteClient(clientId) {
@@ -277,13 +305,12 @@ function AdminDashboard() {
     )
     .filter((product) => !deletedProductIds.includes(product.id));
 
-  const allStockProducts = [
-    ...defaultProducts,
-    ...products.map((product) => ({
-      ...product,
-      type: "admin",
-    })),
-  ];
+  const databaseProducts = products.map((product) => ({
+    ...product,
+    type: "admin",
+  }));
+
+  const allStockProducts = [...defaultProducts, ...databaseProducts];
 
   const lowStockProducts = allStockProducts.filter(
     (product) => Number(product.stock) <= 5
@@ -675,7 +702,7 @@ function AdminDashboard() {
                         <td>{product.stock}</td>
                         <td>
                           {product.type === "admin"
-                            ? "Adicionado pelo admin"
+                            ? "Base de dados"
                             : "Produto padrão"}
                         </td>
                         <td>
