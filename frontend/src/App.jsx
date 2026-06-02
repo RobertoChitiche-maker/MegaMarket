@@ -27,6 +27,9 @@ function App() {
         <Route path="/contacto" element={<Contact />} />
         <Route path="/meus-pedidos" element={<MyOrders />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/MyOrders" element={<MyOrders />} />
+        <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/myorders" element={<MyOrders />} />
       </Routes>
 
       <Footer />

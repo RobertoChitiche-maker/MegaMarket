@@ -13,7 +13,7 @@ function Navbar() {
     const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
     const totalItems = cart.reduce((total, item) => {
-      return total + item.quantity;
+      return total + Number(item.quantity || 1);
     }, 0);
 
     setCartCount(totalItems);
@@ -40,12 +40,19 @@ function Navbar() {
 
     window.addEventListener("cartUpdated", updateCartCount);
     window.addEventListener("authUpdated", loadUser);
+    window.addEventListener("storage", loadUser);
+    window.addEventListener("storage", updateCartCount);
 
     return () => {
       window.removeEventListener("cartUpdated", updateCartCount);
       window.removeEventListener("authUpdated", loadUser);
+      window.removeEventListener("storage", loadUser);
+      window.removeEventListener("storage", updateCartCount);
     };
   }, []);
+
+  const isClient = user?.role === "CLIENT" || user?.role === "CLIENTE";
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <div className={`navbar ${showMenu ? "show-menu" : ""}`}>
@@ -64,13 +71,13 @@ function Navbar() {
               <Link to="/produtos">Produtos</Link>
             </li>
 
-            {user?.role === "CLIENTE" && (
+            {isClient && (
               <li>
-                <Link to="/meus-pedidos">Meus Pedidos</Link>
+                <Link to="/myorders">Meus Pedidos</Link>
               </li>
             )}
 
-            {user?.role === "ADMIN" && (
+            {isAdmin && (
               <li>
                 <Link to="/admin">Painel Admin</Link>
               </li>

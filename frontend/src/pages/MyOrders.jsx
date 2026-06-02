@@ -1,50 +1,25 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function MyOrders() {
+  const [orders, setOrders] = useState([]);
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const months = [
-    { value: 1, name: "Janeiro" },
-    { value: 2, name: "Fevereiro" },
-    { value: 3, name: "Março" },
-    { value: 4, name: "Abril" },
-    { value: 5, name: "Maio" },
-    { value: 6, name: "Junho" },
-    { value: 7, name: "Julho" },
-    { value: 8, name: "Agosto" },
-    { value: 9, name: "Setembro" },
-    { value: 10, name: "Outubro" },
-    { value: 11, name: "Novembro" },
-    { value: 12, name: "Dezembro" },
-  ];
+  useEffect(() => {
+    if (!user) return;
 
-  if (!user) {
-    return (
-      <main>
-        <div className="page-inner-content simple-page">
-          <div className="empty-box">
-            <p>Faça login para ver os seus pedidos.</p>
-            <Link to="/login">Ir para login</Link>
-          </div>
-        </div>
-      </main>
-    );
-  }
+    const savedOrders = JSON.parse(localStorage.getItem("orders")) || [];
 
-  if (user.role !== "CLIENTE") {
-    return (
-      <main>
-        <div className="page-inner-content simple-page">
-          <div className="empty-box">
-            <p>Esta página é apenas para clientes.</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
+    const userOrders = savedOrders
+      .filter(
+        (order) =>
+          Number(order.userId) === Number(user.id) ||
+          order.clientEmail === user.email
+      )
+      .sort((a, b) => Number(b.id) - Number(a.id));
 
-  const allOrders = JSON.parse(localStorage.getItem("orders")) || [];
-  const orders = allOrders.filter((order) => order.userId === user.id);
+    setOrders(userOrders);
+  }, []);
 
   function formatMoney(value) {
     return Number(value || 0).toLocaleString("pt-MZ", {
@@ -69,31 +44,42 @@ function MyOrders() {
     return "Data não identificada";
   }
 
-  function getOrderMonthName(order) {
-    if (order.purchaseMonth) {
-      return order.purchaseMonth;
-    }
+  if (!user) {
+    return (
+      <main>
+        <div className="page-inner-content simple-page">
+          <div className="empty-box">
+            <p>Faça login para ver os seus pedidos.</p>
+            <Link to="/login">Ir para login</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
-    if (order.purchaseMonthNumber) {
-      const month = months.find(
-        (item) => item.value === Number(order.purchaseMonthNumber)
-      );
+  if (user.role === "ADMIN") {
+    return (
+      <main>
+        <div className="page-inner-content simple-page">
+          <div className="empty-box">
+            <p>Administrador deve ver pedidos no painel administrativo.</p>
+            <Link to="/admin">Ir para painel admin</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
-      return month ? month.name : "Mês não identificado";
-    }
-
-    if (order.createdAt) {
-      const date = new Date(order.createdAt);
-
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleString("pt-PT", {
-          month: "long",
-          year: "numeric",
-        });
-      }
-    }
-
-    return "Mês não identificado";
+  if (user.role !== "CLIENT" && user.role !== "CLIENTE") {
+    return (
+      <main>
+        <div className="page-inner-content simple-page">
+          <div className="empty-box">
+            <p>Esta página é apenas para clientes.</p>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -104,7 +90,10 @@ function MyOrders() {
 
         {orders.length === 0 ? (
           <div className="empty-box">
-            <p>Ainda não existem pedidos para esta conta.</p>
+            <p>Ainda não existem pedidos nesta conta.</p>
+            <small>Finalize uma compra para ela aparecer aqui.</small>
+            <br />
+            <Link to="/produtos">Ver produtos</Link>
           </div>
         ) : (
           <div className="client-orders-grid">
@@ -117,21 +106,32 @@ function MyOrders() {
                   </div>
 
                   <span
-                    className={`status ${order.status
+                    className={`status ${String(order.status || "Pendente")
                       .replace(" ", "-")
                       .toLowerCase()}`}
                   >
-                    {order.status}
+                    {order.status || "Pendente"}
                   </span>
                 </div>
 
                 <div className="client-order-info">
                   <p>
-                    <strong>Mês:</strong> {getOrderMonthName(order)}
+                    <strong>Cliente:</strong> {order.clientName || user.name}
                   </p>
 
                   <p>
-                    <strong>Entrega:</strong> {order.deliveryAddress}
+                    <strong>Email:</strong> {order.clientEmail || user.email}
+                  </p>
+
+                  {order.purchaseMonth && (
+                    <p>
+                      <strong>Mês:</strong> {order.purchaseMonth}
+                    </p>
+                  )}
+
+                  <p>
+                    <strong>Entrega:</strong>{" "}
+                    {order.deliveryAddress || "Não informado"}
                   </p>
 
                   <p>
@@ -143,10 +143,10 @@ function MyOrders() {
                   <summary>Ver produtos do pedido</summary>
 
                   <ul>
-                    {order.items.map((item) => (
+                    {(order.items || []).map((item) => (
                       <li key={item.id}>
                         <span>{item.name}</span>
-                        <strong>Qtd: {item.quantity}</strong>
+                        <strong>Qtd: {item.quantity || 1}</strong>
                       </li>
                     ))}
                   </ul>
