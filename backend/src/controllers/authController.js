@@ -1,8 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../prismaClient");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
-const prisma = new PrismaClient();
 
 function generateToken(user) {
   return jwt.sign(
@@ -26,8 +24,13 @@ async function register(req, res) {
       });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = String(password).trim();
+
     const userExists = await prisma.user.findUnique({
-      where: { email },
+      where: {
+        email: cleanEmail,
+      },
     });
 
     if (userExists) {
@@ -36,12 +39,12 @@ async function register(req, res) {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(cleanPassword, 10);
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: cleanEmail,
         password: hashedPassword,
         role: "CLIENT",
       },
@@ -77,7 +80,10 @@ async function login(req, res) {
       });
     }
 
-    if (email === "roberto.chitiche@gmail.com" && password === "2341") {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = String(password).trim();
+
+    if (cleanEmail === "roberto.chitiche@gmail.com" && cleanPassword === "2341") {
       const adminUser = {
         id: 1,
         name: "Administrador",
@@ -95,7 +101,9 @@ async function login(req, res) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: {
+        email: cleanEmail,
+      },
     });
 
     if (!user) {
@@ -104,7 +112,15 @@ async function login(req, res) {
       });
     }
 
-    const passwordIsValid = await bcrypt.compare(password, user.password);
+    let passwordIsValid = false;
+
+    const savedPassword = String(user.password || "");
+
+    if (savedPassword.startsWith("$2a$") || savedPassword.startsWith("$2b$")) {
+      passwordIsValid = await bcrypt.compare(cleanPassword, savedPassword);
+    } else {
+      passwordIsValid = cleanPassword === savedPassword;
+    }
 
     if (!passwordIsValid) {
       return res.status(401).json({

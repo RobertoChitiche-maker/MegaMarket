@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import api from "../services/api";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Login() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ function Login() {
   });
 
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     setForm({
@@ -21,109 +23,95 @@ function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setMessage("");
 
-    if (
-      form.email === "roberto.chitiche@gmail.com" &&
-      form.password === "2341"
-    ) {
-      const adminUser = {
-        id: 1,
-        name: "Administrador",
-        email: "roberto.chitiche@gmail.com",
-        role: "ADMIN",
-      };
-
-      localStorage.setItem("token", "admin-token-megamarket");
-      localStorage.setItem("user", JSON.stringify(adminUser));
-
-      window.dispatchEvent(new Event("authUpdated"));
-
-      navigate("/admin");
+    if (!form.email || !form.password) {
+      setMessage("Preencha email e senha.");
       return;
     }
 
     try {
-      const response = await api.post("/auth/login", form);
+      setLoading(true);
 
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
+          password: form.password.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Email ou senha inválidos.");
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       window.dispatchEvent(new Event("authUpdated"));
 
-      navigate("/meus-pedidos");
+      setMessage("Login realizado com sucesso!");
+
+      setTimeout(() => {
+        if (data.user.role === "ADMIN") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      }, 700);
     } catch (error) {
-      const localUsers = JSON.parse(localStorage.getItem("clients")) || [];
-
-      const foundUser = localUsers.find(
-        (user) => user.email === form.email && user.password === form.password
-      );
-
-      if (foundUser) {
-        const clientUser = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          role: "CLIENTE",
-        };
-
-        localStorage.setItem("token", "client-token-megamarket");
-        localStorage.setItem("user", JSON.stringify(clientUser));
-
-        window.dispatchEvent(new Event("authUpdated"));
-
-        navigate("/meus-pedidos");
-      } else {
-        setMessage("Email ou senha inválidos.");
-      }
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <main className="auth-page">
-      <div className="auth-container">
-        <div className="auth-box">
-          <div className="auth-header">
-            <h1>Entrar</h1>
-            <p>
-              Clientes podem acompanhar pedidos. O administrador pode gerir
-              vendas, produtos, stock e entregas.
-            </p>
+      <div className="auth-box">
+        <div className="auth-header">
+          <h1>Entrar</h1>
+          <p>Acesse a sua conta MegaMarket.</p>
+        </div>
+
+        {message && <div className="auth-message">{message}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="input-group">
+            <label>Email</label>
+            <input
+              type="email"
+              name="email"
+              placeholder="Digite o seu email"
+              value={form.email}
+              onChange={handleChange}
+            />
           </div>
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="input-group">
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="Digite o seu email"
-                value={form.email}
-                onChange={handleChange}
-              />
-            </div>
+          <div className="input-group">
+            <label>Senha</label>
+            <input
+              type="password"
+              name="password"
+              placeholder="Digite a sua senha"
+              value={form.password}
+              onChange={handleChange}
+            />
+          </div>
 
-            <div className="input-group">
-              <label>Senha</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Digite a sua senha"
-                value={form.password}
-                onChange={handleChange}
-              />
-            </div>
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
 
-            <button type="submit" className="auth-submit-btn">
-              Entrar
-            </button>
-
-            {message && <p className="auth-message">{message}</p>}
-
-            <p className="auth-switch">
-              Ainda não tem conta? <Link to="/registo">Criar conta</Link>
-            </p>
-          </form>
-        </div>
+        <p className="auth-switch">
+          Ainda não tem conta? <Link to="/register">Criar conta</Link>
+        </p>
       </div>
     </main>
   );
