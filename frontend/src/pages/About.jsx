@@ -7,7 +7,7 @@ function About() {
 
         <div className="simple-card">
           <p>
-            O MegaMarket é uma loja online de aparelhos eletrónicos criada para
+            O RobertoMarket é uma loja online de aparelhos eletrónicos criada para
             facilitar a compra de telemóveis, computadores, acessórios,
             equipamentos gamer e outros produtos tecnológicos.
           </p>

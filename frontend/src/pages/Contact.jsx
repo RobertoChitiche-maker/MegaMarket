@@ -8,11 +8,11 @@ function Contact() {
         <div className="simple-card">
           <p>
             Para mais informações sobre produtos, encomendas ou assistência,
-            entre em contacto com a equipa MegaMarket.
+            entre em contacto com a equipa RobertoMarket.
           </p>
 
           <p>
-            <strong>Email:</strong> contacto@megamarket.com
+            <strong>Email:</strong> contacto@Robertomarket.com
           </p>
 
           <p>
@@ -20,7 +20,7 @@ function Contact() {
           </p>
 
           <p>
-            <strong>Localização:</strong> Maputo, Moçambique
+            <strong>Localização:</strong> Tete, Moçambique
           </p>
         </div>
       </div>

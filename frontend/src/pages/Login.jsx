@@ -76,7 +76,7 @@ function Login() {
       <div className="auth-box">
         <div className="auth-header">
           <h1>Entrar</h1>
-          <p>Acesse a sua conta MegaMarket.</p>
+          <p>Acesse a sua conta RobertoMarket.</p>
         </div>
 
         {message && <div className="auth-message">{message}</div>}

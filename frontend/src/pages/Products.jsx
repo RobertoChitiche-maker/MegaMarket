@@ -89,7 +89,7 @@ function Products() {
         <div className="sbtitulo-underline"></div>
 
         <p className="products-intro">
-          Explore os produtos disponíveis no MegaMarket. Esta página mostra
+          Explore os produtos disponíveis no RobertoMarket. Esta página mostra
           apenas os produtos cadastrados na base de dados.
         </p>
 

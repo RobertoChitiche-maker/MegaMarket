@@ -12,7 +12,7 @@ function Footer() {
             ROBERTO<span>MARKET</span>
           </h1>
           <p>
-            Encontre tudo em um só lugar. MegaMarket é a sua loja digital de
+            Encontre tudo em um só lugar. RobertoMarket é a sua loja digital de
             aparelhos eletrónicos, computadores, telemóveis e acessórios.
           </p>
         </div>

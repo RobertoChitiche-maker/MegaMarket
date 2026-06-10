@@ -69,7 +69,7 @@ function Register() {
       <div className="auth-box">
         <div className="auth-header">
           <h1>Criar conta</h1>
-          <p>Registe-se para comprar no MegaMarket.</p>
+          <p>Registe-se para comprar no RobertoMarket.</p>
         </div>
 
         {message && <div className="auth-message">{message}</div>}
